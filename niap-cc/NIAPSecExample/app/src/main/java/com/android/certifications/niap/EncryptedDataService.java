@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
+import com.android.certifications.niap.niapsec.SecureConfig;
 import com.android.certifications.niap.niapsec.biometric.BiometricSupport;
 import com.android.certifications.niap.niapsec.biometric.BiometricSupportImpl;
 import com.android.certifications.niap.niapsec.crypto.SecureCipher;
@@ -73,7 +74,7 @@ public class EncryptedDataService extends IntentService {
         super.onCreate();
         this.viewModel = MainActivity.viewModel;
         biometricSupport = new BiometricSupportImpl(MainActivity.thisActivity,
-                getApplicationContext()) {
+                getApplicationContext(),true) {
             @Override
             public void onAuthenticationSucceeded() {
                 showMessage(BIOMETRIC_AUTH + " Succeeded!");
@@ -84,12 +85,6 @@ public class EncryptedDataService extends IntentService {
                 onMessage(BIOMETRIC_AUTH + " Failed");
             }
 
-            @Override
-            public void onAuthenticationCancelled() {
-                showMessage(BIOMETRIC_AUTH + " Cancelled!");
-            }
-
-            @Override
             public void onMessage(String message) {
                 showMessage(message);
             }
@@ -147,7 +142,7 @@ public class EncryptedDataService extends IntentService {
                 asymmetricKeyPairAlias,
                 testDataString.getBytes(),
                 (byte[] encryptedData) -> {
-            SecureCipher secureCipher = SecureCipher.getDefault(biometricSupport);
+            SecureCipher secureCipher = SecureCipher.getDefault((SecureConfig) biometricSupport);
             secureCipher.decryptEncodedData(encryptedData, (byte[] decryptedData) -> {
                 Log.i(TAG, "Decrypted... " + new String(decryptedData));
                 boolean encrypted = encryptData(fileName, (byte[] cipherText) -> {
@@ -197,7 +192,7 @@ public class EncryptedDataService extends IntentService {
 
         Intent notificationIntent = new Intent(this, EncryptedDataService.class);
         PendingIntent pendingIntent =
-                PendingIntent.getActivity(this, 0, notificationIntent, 0);
+                PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder notificationBuilder = new Notification.Builder(
                 this,
